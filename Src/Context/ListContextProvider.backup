@@ -1,0 +1,84 @@
+
+
+import { View, Text } from 'react-native'
+import React, { useState, createContext, useEffect, useContext, Children } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserContext2 } from './ContextProvider';
+
+export const ListContext = createContext({});
+
+export default function ListContextProvider({ children }) {
+	const { currentUser, SetCurrentUser, handleActiveMember, points, shoppingLists, achievements, budges } = useContext(UserContext2);
+
+
+	const [newList, SetNewList] = useState({
+		// isHeader: true,
+		userID: currentUser?._id,
+		headerId: '',
+		listName: '',
+		listType: '',
+		archivedStatus: false,
+		pinned: false,
+		listItems: null,
+		listColor: ''
+	})
+
+	const [listName, SetListName] = useState('');
+	const [listType, SetListtype] = useState('');
+	const [archivedStatus, SetArchivedStatus] = useState(false);
+	const [pinned, SetPinned] = useState(false);
+	const [listItems, SetListItems] = useState([]);
+	const [listColor, SetListColor] = useState('');
+
+	const [remeberCurrentList, SetRememberCurrentList] = useState(null);
+	const [currentList, SetCurrentList] = useState(null);
+
+	const handleActiveList = async (listData, isNewList, recallList) => {
+		if (recallList) {
+			await AsyncStorage.setItem('@ListData', JSON.stringify(listData));
+		} else {
+			await AsyncStorage.removeItem('@ListData');
+		}
+		if (isNewList) {
+			SetNewList(listData)
+		} else {
+			SetCurrentList(listData);
+		}
+		SetRememberCurrentList(recallList);
+	}
+	const changeList = async (changeListDone) => {
+		if (remeberCurrentList) await AsyncStorage.removeItem('@ListData');
+		SetPinned(null);
+		SetListItems(null);
+		SetListColor('');
+		SetCurrentList(null);
+		if (changeListDone) { changeListDone() }
+	}
+
+	useEffect(() => {
+		const isInList = async () => {
+			const listDataString = await AsyncStorage.getItem('@ListData');
+			if (listDataString) {
+				const listData = JSON.parse(listDataString);
+				SetCurrentList(listData);
+			}
+		};
+		isInList();
+	}, [])
+	return (
+		<ListContext.Provider value={
+			{
+				listName, SetListName,
+				listType, SetListtype,
+				archivedStatus, SetArchivedStatus,
+				pinned, SetPinned,
+				listItems, SetListItems,
+				listColor, SetListColor,
+
+				remeberCurrentList, SetRememberCurrentList,
+				currentList, SetCurrentList,
+			}}>
+			{children}
+		</ListContext.Provider>
+	);
+}
